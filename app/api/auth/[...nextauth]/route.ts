@@ -2,6 +2,7 @@ import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { SubscriptionTier } from '@/types';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -43,7 +44,7 @@ export const authOptions: NextAuthOptions = {
         return {
           id: merchant.id,
           email: merchant.email,
-          subscriptionTier: merchant.subscriptionTier,
+          subscriptionTier: merchant.subscriptionTier as SubscriptionTier,
         };
       },
     }),
