@@ -1,7 +1,7 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 // Toast notification context
 interface Toast {
@@ -28,6 +28,11 @@ export function useToast() {
 
 function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const addToast = (type: Toast['type'], message: string) => {
     const id = Math.random().toString(36).substring(7);
@@ -47,6 +52,7 @@ function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
       {children}
       {/* Toast Container */}
+      {mounted && (
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
         {toasts.map((toast) => (
           <div
@@ -73,6 +79,7 @@ function ToastProvider({ children }: { children: ReactNode }) {
           </div>
         ))}
       </div>
+      )}
     </ToastContext.Provider>
   );
 }

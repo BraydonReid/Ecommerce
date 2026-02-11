@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(process.env.NEXTAUTH_URL || 'https://greencommerce.io'),
+  metadataBase: new URL(process.env.NEXTAUTH_URL || 'https://greencommerces.com'),
   alternates: {
     canonical: '/',
   },
