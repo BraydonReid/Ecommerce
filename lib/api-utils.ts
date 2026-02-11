@@ -50,8 +50,8 @@ export function errorResponse(
     {
       success: false as const,
       error,
-      ...(code && { code }),
-      ...(details && { details }),
+      ...(code ? { code } : {}),
+      ...(details ? { details } : {}),
     },
     { status }
   );
