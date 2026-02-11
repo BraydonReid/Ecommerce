@@ -30,11 +30,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not enough data. Sync orders first.' }, { status: 400 });
     }
 
-    const totalEmissions = emissions.reduce((sum, e) => sum + e.totalCO2e, 0);
+    const totalCO2e = emissions.reduce((sum, e) => sum + e.totalCO2e, 0);
+    const shippingCO2e = emissions.reduce((sum, e) => sum + e.shippingCO2e, 0);
+    const packagingCO2e = emissions.reduce((sum, e) => sum + e.packagingCO2e, 0);
     const metricsData = {
       period: 'last 30 days',
-      totalOrders: emissions.length,
-      totalEmissions: totalEmissions.toFixed(2),
+      orderCount: emissions.length,
+      totalCO2e,
+      shippingCO2e,
+      packagingCO2e,
     };
 
     const insights = await generateAIInsights(metricsData);
