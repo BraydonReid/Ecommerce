@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(head:*)",
+      "Bash(xargs -I {} bash -c 'echo \"\"=== {} ===\"\" && wc -l {}')",
+      "Bash(taskkill:*)",
+      "Bash(if exist \".next\" rmdir /S /Q \".next\")",
+      "Bash(powershell:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npm run dev:*)"
+    ]
+  }
+}

@@ -1,0 +1,149 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Merchant {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  password          String?  // Hashed password for email/password auth
+  shopifyShop       String?  @unique
+  shopifyAccessToken String?
+  stripeCustomerId  String?  @unique
+  subscriptionTier  String   @default("free") // free, basic, premium
+  subscriptionId    String?
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  orders            Order[]
+  products          Product[]
+  emissions         EmissionRecord[]
+  settings          MerchantSettings?
+}
+
+model MerchantSettings {
+  id                    String   @id @default(cuid())
+  merchantId            String   @unique
+  defaultPackagingType  String   @default("cardboard") // cardboard, plastic, paper, biodegradable, mixed
+  defaultPackagingWeight Float   @default(0.1) // kg
+  defaultShippingMode   String   @default("road") // air, sea, road, rail
+  enableAIInsights      Boolean  @default(false)
+  emailReports          Boolean  @default(false)
+  reportFrequency       String   @default("monthly") // weekly, monthly, quarterly
+  trackingEnabled       Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  merchant              Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id                String   @id @default(cuid())
+  merchantId        String
+  shopifyProductId  String
+  title             String
+  sku               String?
+  weight            Float?   // kg
+  material          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  merchant          Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  orderItems        OrderItem[]
+
+  @@unique([merchantId, shopifyProductId])
+  @@index([merchantId])
+}
+
+model Order {
+  id                String   @id @default(cuid())
+  merchantId        String
+  shopifyOrderId    String
+  orderNumber       String
+  totalPrice        Float
+  shippingDistance  Float?   // km
+  shippingMethod    String?  // air, sea, road, rail
+  originAddress     String?
+  destinationAddress String?
+  totalWeight       Float?   // kg
+  packagingWeight   Float?   // kg
+  packagingType     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  merchant          Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  items             OrderItem[]
+  emissions         EmissionRecord[]
+
+  @@unique([merchantId, shopifyOrderId])
+  @@index([merchantId])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id         String @id @default(cuid())
+  orderId    String
+  productId  String
+  quantity   Int
+  price      Float
+
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model EmissionRecord {
+  id                String   @id @default(cuid())
+  merchantId        String
+  orderId           String
+  totalCO2e         Float    // kg CO2e
+  shippingCO2e      Float    // kg CO2e
+  packagingCO2e     Float    // kg CO2e
+  productionCO2e    Float    @default(0) // kg CO2e (future feature)
+  calculatedAt      DateTime @default(now())
+  calculationMethod String   @default("climatiq")
+
+  merchant          Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@index([orderId])
+  @@index([calculatedAt])
+}
+
+model AIInsight {
+  id          String   @id @default(cuid())
+  merchantId  String
+  period      String   // month-year format, e.g., "2024-01"
+  summary     String   @db.Text
+  recommendations String @db.Text
+  metrics     Json     // Store key metrics used for the insight
+  createdAt   DateTime @default(now())
+
+  @@index([merchantId])
+  @@index([period])
+}
+
+model WebhookLog {
+  id        String   @id @default(cuid())
+  source    String   // shopify, stripe
+  event     String
+  payload   Json
+  processed Boolean  @default(false)
+  error     String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([source])
+  @@index([processed])
+  @@index([createdAt])
+}
