@@ -134,9 +134,9 @@ async function main() {
       biodegradable: 0.45,
     };
 
-    const tonKm = (shippingDistance * order.totalWeight) / 1000;
+    const tonKm = (shippingDistance * (order.totalWeight ?? 0)) / 1000;
     const shippingCO2e = tonKm * shippingEmissionFactors[shippingMethod];
-    const packagingCO2e = order.packagingWeight * packagingEmissionFactors[packagingType];
+    const packagingCO2e = (order.packagingWeight ?? 0) * packagingEmissionFactors[packagingType];
     const totalCO2e = shippingCO2e + packagingCO2e;
 
     await prisma.emissionRecord.create({

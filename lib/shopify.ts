@@ -1,5 +1,5 @@
 import '@shopify/shopify-api/adapters/node';
-import { shopifyApi, LATEST_API_VERSION } from '@shopify/shopify-api';
+import { shopifyApi, LATEST_API_VERSION, DeliveryMethod } from '@shopify/shopify-api';
 
 const shopify = shopifyApi({
   apiKey: process.env.SHOPIFY_API_KEY!,
@@ -126,7 +126,7 @@ export async function registerWebhooks(shop: string, accessToken: string) {
       await shopify.webhooks.addHandlers({
         [webhook.topic]: [
           {
-            deliveryMethod: 'http',
+            deliveryMethod: DeliveryMethod.Http,
             callbackUrl: webhook.address,
           },
         ],
