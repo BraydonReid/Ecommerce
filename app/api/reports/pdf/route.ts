@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     const pdfBuffer = await generatePDFReport(reportData);
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="emissions-report-${new Date().toISOString().slice(0, 10)}.pdf"`,
