@@ -94,14 +94,47 @@ See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for detailed instructions on obtaining th
 
 **Target**: $1M ARR achievable with 1,000 premium subscribers or 2,000 mixed-tier customers.
 
-## 🎯 Next Steps
+## 🎯 Next Steps (Actionable Checklist)
 
-1. ✅ Complete the setup (see SETUP_GUIDE.md)
-2. 🎨 Customize branding and copy
-3. 🧪 Test with Shopify development store
-4. 🚀 Deploy to Vercel/Railway
-5. 📱 Submit to Shopify App Store
-6. 📣 Launch marketing campaign
+1. **Secure credentials**
+	- Move secrets to .env.local and rotate any exposed API keys.
+	- Ensure NEXTAUTH_SECRET is a strong random value.
+
+2. **Validate build & runtime**
+	- Run npm run build and npm run start.
+	- Confirm /health and /api/analytics/summary respond.
+
+3. **Shopify setup**
+	- Create a Shopify Partner app and set App URL + Redirect URLs.
+	- Install the app on a dev store and confirm OAuth completes.
+	- Register webhooks for orders/create and orders/updated.
+
+4. **Database & data ingestion**
+	- Run Prisma generate/migrate and verify tables.
+	- Trigger initial historical import.
+	- Verify daily sync jobs are scheduled.
+
+5. **Carbon engine**
+	- Add Climatiq API key or configure local emission factors.
+	- Validate CO₂e calculations against sample orders.
+
+6. **Reports & AI (optional)**
+	- Configure OpenAI API key.
+	- Test monthly summary generation and PDF output.
+
+7. **Stripe billing**
+	- Create Stripe products/prices and update price IDs.
+	- Validate webhook handling and subscription state updates.
+
+8. **Security & compliance**
+	- Add privacy policy and terms pages.
+	- Confirm HMAC verification for Shopify webhooks.
+	- Ensure sensitive data isn’t logged or stored unnecessarily.
+
+9. **Deploy & launch**
+	- Deploy (Vercel/Render/Railway) with env vars.
+	- Submit Shopify App Store listing.
+	- Start beta with 3–5 stores and iterate.
 
 ## 📊 Key Metrics
 
