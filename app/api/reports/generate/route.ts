@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Return PDF
-      return new NextResponse(pdf, {
+      return new NextResponse(new Uint8Array(pdf), {
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `attachment; filename="sustainability-report-${period}.pdf"`,
