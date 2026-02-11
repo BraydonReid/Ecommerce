@@ -7,7 +7,17 @@
       "Bash(if exist \".next\" rmdir /S /Q \".next\")",
       "Bash(powershell:*)",
       "Bash(npx prisma generate:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(dir /b \"c:\\\\Users\\\\speco\\\\Desktop\\\\e_commerce_site\")",
+      "Bash(findstr:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix ESLint peer dependency conflict for Railway deployment\n\n- Update eslint from ^8 to ^9 to match eslint-config-next@16.1.6 requirements\n- Add .npmrc with legacy-peer-deps=true as fallback\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nRegenerate package-lock.json for ESLint 9\n\nSyncs lock file with updated package.json dependencies.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nRegenerate package-lock.json with legacy-peer-deps\n\nFixes typescript-eslint peer dependency conflict for Railway deployment.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix TypeScript error in NextAuth authorize function\n\nCast subscriptionTier to SubscriptionTier type to satisfy NextAuth User type.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
