@@ -13,14 +13,15 @@ export async function POST(request: NextRequest) {
     const shop = request.headers.get('X-Shopify-Shop-Domain');
     const topic = request.headers.get('X-Shopify-Topic');
 
-    const body = await request.text();
-    const rawBody = Buffer.from(body);
+    const rawBody = await request.text();
 
     // Verify HMAC
     const isValid = await shopify.webhooks.validate({
       rawBody,
       rawRequest: request as any,
     });
+
+    const body = rawBody;
 
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid webhook' }, { status: 401 });
