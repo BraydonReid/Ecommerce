@@ -213,12 +213,12 @@ export default function RealDashboard({ shop }: { shop?: string }) {
                   Your account is linked to <strong>{merchant.shopifyShop}</strong> but the app hasn't been authorized to access your store data yet.
                   Please connect your store to enable order syncing and emissions tracking.
                 </p>
-                <Link
-                  href={`/api/shopify/auth?shop=${encodeURIComponent(merchant.shopifyShop)}`}
+                <a
+                  href="/connect"
                   className="inline-block bg-yellow-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-yellow-700 transition"
                 >
                   Connect Store
-                </Link>
+                </a>
               </div>
             </div>
           </div>
