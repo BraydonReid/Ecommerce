@@ -27,10 +27,17 @@ export async function POST(request: NextRequest) {
       where: { shopifyShop: shop },
     });
 
-    if (!merchant || !merchant.shopifyAccessToken) {
+    if (!merchant) {
       return NextResponse.json(
-        { error: 'Merchant not found or not connected' },
+        { error: 'Merchant not found. Please connect your store first.' },
         { status: 404 }
+      );
+    }
+
+    if (!merchant.shopifyAccessToken) {
+      return NextResponse.json(
+        { error: 'Store not authorized. Please complete the Shopify connection by clicking "Connect Store" to grant access to your store data.', needsAuth: true },
+        { status: 403 }
       );
     }
 

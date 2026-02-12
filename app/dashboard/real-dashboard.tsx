@@ -30,6 +30,7 @@ export default function RealDashboard({ shop }: { shop?: string }) {
   const [error, setError] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
+  const [needsShopifyAuth, setNeedsShopifyAuth] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -68,11 +69,18 @@ export default function RealDashboard({ shop }: { shop?: string }) {
         { method: 'POST' }
       );
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error('Sync failed');
+        if (result.needsAuth) {
+          setSyncMessage('⚠️ Store not authorized. Please click "Connect Store" below to complete the Shopify authorization.');
+          setNeedsShopifyAuth(true);
+        } else {
+          setSyncMessage(`❌ ${result.error || 'Sync failed. Please try again.'}`);
+        }
+        return;
       }
 
-      const result = await response.json();
       setSyncMessage(
         `✅ Synced ${result.stats.syncedOrders} orders and ${result.stats.syncedProducts} products`
       );
@@ -82,7 +90,7 @@ export default function RealDashboard({ shop }: { shop?: string }) {
         fetchData();
       }, 1000);
     } catch (err) {
-      setSyncMessage('❌ Failed to sync data. Please try again.');
+      setSyncMessage('❌ Failed to sync data. Please check your connection and try again.');
     } finally {
       setSyncing(false);
     }
@@ -193,6 +201,28 @@ export default function RealDashboard({ shop }: { shop?: string }) {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {needsShopifyAuth && merchant.shopifyShop && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+            <div className="flex items-start">
+              <div className="text-3xl mr-4">🔗</div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-yellow-900 mb-2">
+                  Shopify Authorization Required
+                </h3>
+                <p className="text-yellow-700 mb-4">
+                  Your account is linked to <strong>{merchant.shopifyShop}</strong> but the app hasn't been authorized to access your store data yet.
+                  Please connect your store to enable order syncing and emissions tracking.
+                </p>
+                <Link
+                  href={`/api/shopify/auth?shop=${encodeURIComponent(merchant.shopifyShop)}`}
+                  className="inline-block bg-yellow-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-yellow-700 transition"
+                >
+                  Connect Store
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
         {!hasOrders ? (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
             <div className="flex items-start">
