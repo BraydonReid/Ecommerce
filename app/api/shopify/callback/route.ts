@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getToken } from 'next-auth/jwt';
 import axios from 'axios';
 
 // Use environment variable for API version with fallback
@@ -41,8 +42,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Store or update merchant in database
-    // First, check if there's an existing merchant with this shop
+    // Try to find existing merchant in this order:
+    // 1. By exact shopifyShop match
+    // 2. By currently logged-in session (user connecting their store)
+    // 3. By Shopify shop email from API
+    // 4. Create new merchant
     let merchant = await prisma.merchant.findUnique({
       where: { shopifyShop: shop },
     });
@@ -54,19 +58,57 @@ export async function GET(request: NextRequest) {
         data: { shopifyAccessToken: access_token },
       });
     } else {
-      // Check if there's a merchant that was pre-configured with this shop but hasn't connected yet
-      // (This handles the case where an admin created a merchant record manually)
-      const existingByShop = await prisma.merchant.findFirst({
-        where: { shopifyShop: shop },
-      });
+      // Check if user is currently logged in — link their account to this shop
+      const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
 
-      if (existingByShop) {
-        merchant = await prisma.merchant.update({
-          where: { id: existingByShop.id },
-          data: { shopifyAccessToken: access_token },
+      if (token?.id) {
+        const loggedInMerchant = await prisma.merchant.findUnique({
+          where: { id: token.id as string },
         });
-      } else {
-        // Create new merchant if none exists
+
+        if (loggedInMerchant) {
+          // Update logged-in merchant with the new shop domain and access token
+          merchant = await prisma.merchant.update({
+            where: { id: loggedInMerchant.id },
+            data: {
+              shopifyShop: shop,
+              shopifyAccessToken: access_token,
+            },
+          });
+        }
+      }
+
+      if (!merchant) {
+        // Try to match by shop owner email from Shopify API
+        try {
+          const shopResponse = await axios.get(
+            `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/shop.json`,
+            { headers: { 'X-Shopify-Access-Token': access_token } }
+          );
+          const shopEmail = shopResponse.data?.shop?.email;
+
+          if (shopEmail) {
+            const existingByEmail = await prisma.merchant.findUnique({
+              where: { email: shopEmail },
+            });
+
+            if (existingByEmail) {
+              merchant = await prisma.merchant.update({
+                where: { id: existingByEmail.id },
+                data: {
+                  shopifyShop: shop,
+                  shopifyAccessToken: access_token,
+                },
+              });
+            }
+          }
+        } catch (shopError) {
+          console.error('Could not fetch shop info for email matching:', shopError);
+        }
+      }
+
+      if (!merchant) {
+        // Create new merchant as last resort
         merchant = await prisma.merchant.create({
           data: {
             email: `${shop.replace('.myshopify.com', '')}@shopify.merchant`,
@@ -77,17 +119,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Log successful connection (consider using a proper logging service in production)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Merchant connected:', shop);
-    }
-
     // Register webhooks
     try {
       await registerWebhooks(shop, access_token);
     } catch (webhookError) {
       console.error('Warning: Failed to register webhooks:', webhookError);
-      // Continue anyway - webhooks can be set up later
     }
 
     // Redirect to dashboard with shop parameter

@@ -12,7 +12,7 @@ async function main() {
 
   // Create admin test account
   const adminEmail = 'braydonreid01@gmail.com';
-  const shopifyShop = 'coolhomedecorandthemes.myshopify.com';
+  const shopifyShop = 'e6dgjz-cc.myshopify.com';
 
   // Hash a default password (user should change this)
   // Using a secure default that should be changed
