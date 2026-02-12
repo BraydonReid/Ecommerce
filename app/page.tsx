@@ -9,7 +9,7 @@ export default function Home() {
           <div className="flex items-center">
             <span className="text-2xl font-bold text-green-primary">🌱 GreenCommerce</span>
           </div>
-          <nav className="flex gap-6">
+          <nav className="flex gap-6 items-center">
             <Link href="#features" className="text-gray-600 hover:text-green-primary">
               Features
             </Link>
@@ -18,6 +18,12 @@ export default function Home() {
             </Link>
             <Link href="/connect" className="text-green-primary font-semibold hover:text-green-secondary">
               Connect Store
+            </Link>
+            <Link
+              href="/login"
+              className="bg-green-primary text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-secondary transition"
+            >
+              Sign In
             </Link>
           </nav>
         </div>

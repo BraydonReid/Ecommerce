@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import EmissionsChart from '@/components/EmissionsChart';
 import MetricsCard from '@/components/MetricsCard';
+import { ShippingOptimization } from '@/components/shipping';
 
 interface DashboardData {
   merchant: {
@@ -252,6 +253,14 @@ export default function RealDashboard({ shop }: { shop?: string }) {
                 </h2>
                 <EmissionsChart data={chartData} />
               </div>
+            )}
+
+            {/* Shipping Optimization Section */}
+            {merchant.shopifyShop && (
+              <ShippingOptimization
+                shop={merchant.shopifyShop}
+                subscriptionTier={merchant.subscriptionTier}
+              />
             )}
 
             {/* Top Products */}

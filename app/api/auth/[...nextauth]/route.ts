@@ -45,6 +45,8 @@ export const authOptions: NextAuthOptions = {
           id: merchant.id,
           email: merchant.email,
           subscriptionTier: merchant.subscriptionTier as SubscriptionTier,
+          isAdmin: merchant.isAdmin || false,
+          shopifyShop: merchant.shopifyShop,
         };
       },
     }),
@@ -60,6 +62,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.subscriptionTier = (user as any).subscriptionTier;
+        token.isAdmin = (user as any).isAdmin;
+        token.shopifyShop = (user as any).shopifyShop;
       }
       return token;
     },
@@ -67,6 +71,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).subscriptionTier = token.subscriptionTier;
+        (session.user as any).isAdmin = token.isAdmin;
+        (session.user as any).shopifyShop = token.shopifyShop;
       }
       return session;
     },

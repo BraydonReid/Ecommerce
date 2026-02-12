@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import axios from 'axios';
 import { calculateCarbonEmissions } from '@/lib/carbon';
+import { detectShippingProvider, matchProviderToDatabase } from '@/lib/shipping-provider';
 
 // Use environment variable for API version with fallback
 const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || '2024-01';
@@ -157,6 +158,12 @@ export async function POST(request: NextRequest) {
         // Estimate shipping distance (simplified - would need geocoding in production)
         const shippingDistance = 500; // Default 500km, should be calculated based on addresses
 
+        // Extract shipping cost and details
+        const shippingLine = shippingLines[0];
+        const shippingCost = shippingLine ? parseFloat(shippingLine.price || '0') : 0;
+        const carrierCode = shippingLine?.code || null;
+        const carrierTitle = shippingLine?.title || null;
+
         // Create order
         const order = await prisma.order.create({
           data: {
@@ -176,6 +183,28 @@ export async function POST(request: NextRequest) {
             createdAt: new Date(shopifyOrder.created_at),
           },
         });
+
+        // Create shipping record for optimization feature
+        if (carrierTitle) {
+          const detected = detectShippingProvider(carrierTitle, carrierCode || '');
+          const matched = await matchProviderToDatabase(detected);
+
+          await prisma.orderShippingRecord.create({
+            data: {
+              orderId: order.id,
+              merchantId: merchant.id,
+              detectedProviderName: detected.providerName,
+              detectedServiceLevel: detected.serviceLevel,
+              matchedProviderId: matched.providerId,
+              shippingCost: shippingCost,
+              shippingCurrency: shopifyOrder.currency || 'USD',
+              carrierCode: carrierCode,
+              carrierTitle: carrierTitle,
+              costPerKg: totalWeight > 0 ? shippingCost / totalWeight : null,
+              costPerKm: shippingDistance > 0 ? shippingCost / shippingDistance : null,
+            },
+          });
+        }
 
         // Create order items
         for (const item of shopifyOrder.line_items || []) {

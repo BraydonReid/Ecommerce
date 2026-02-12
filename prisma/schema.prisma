@@ -20,13 +20,17 @@ model Merchant {
   subscriptionTier  String   @default("free") // free, basic, premium
   subscriptionId    String?
   active            Boolean  @default(true)
+  isAdmin           Boolean  @default(false) // Admin users have full access
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  orders            Order[]
-  products          Product[]
-  emissions         EmissionRecord[]
-  settings          MerchantSettings?
+  orders                   Order[]
+  products                 Product[]
+  emissions                EmissionRecord[]
+  settings                 MerchantSettings?
+  orderShippingRecords     OrderShippingRecord[]
+  shippingComparisons      ShippingComparison[]
+  shippingOptimization     ShippingOptimizationSettings?
 }
 
 model MerchantSettings {
@@ -82,6 +86,7 @@ model Order {
   merchant          Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   items             OrderItem[]
   emissions         EmissionRecord[]
+  shippingRecord    OrderShippingRecord?
 
   @@unique([merchantId, shopifyOrderId])
   @@index([merchantId])
@@ -146,4 +151,163 @@ model WebhookLog {
   @@index([source])
   @@index([processed])
   @@index([createdAt])
+}
+
+// Shipping Optimization Models
+
+model ShippingProvider {
+  id                      String   @id @default(cuid())
+  name                    String   @unique  // e.g., "ups", "fedex", "usps", "dhl"
+  displayName             String   // "UPS", "FedEx", "USPS", "DHL"
+  type                    String   @default("carrier") // carrier or service_level
+
+  // Carbon emission factors per ton-km for different service levels
+  standardEmissionFactor  Float    @default(0.096)  // kg CO2e per ton-km (ground/standard)
+  expressEmissionFactor   Float    @default(0.15)   // kg CO2e per ton-km (express)
+  overnightEmissionFactor Float    @default(1.13)   // kg CO2e per ton-km (air/overnight)
+
+  // Base pricing structure (for comparison estimates)
+  basePricePerKg          Float?   // Base price per kg
+  basePricePerKm          Float?   // Base price per km
+  minimumCharge           Float?   // Minimum shipping charge
+
+  // Service metadata
+  avgDeliveryDays         Int?     // Average delivery time
+  carbonOffsetAvailable   Boolean  @default(false)
+  sustainabilityRating    Int?     // 1-5 rating
+
+  active                  Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  // Relations
+  serviceLevels           ShippingServiceLevel[]
+  orderShippingRecords    OrderShippingRecord[]
+  comparisonAlternatives  ShippingComparison[]
+
+  @@index([name])
+  @@index([active])
+}
+
+model ShippingServiceLevel {
+  id                String   @id @default(cuid())
+  providerId        String
+  name              String   // "Ground", "Express", "Overnight", "Economy"
+  code              String   // "ups_ground", "fedex_express"
+
+  // Emission factors specific to this service level
+  emissionFactor    Float    // kg CO2e per ton-km
+  shippingMode      String   // "road", "air", "rail", "sea"
+
+  // Pricing
+  priceMultiplier   Float    @default(1.0)  // Multiplier on base price
+
+  // Delivery
+  minDeliveryDays   Int?
+  maxDeliveryDays   Int?
+
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  provider          ShippingProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, code])
+  @@index([providerId])
+}
+
+model OrderShippingRecord {
+  id                    String   @id @default(cuid())
+  orderId               String   @unique
+  merchantId            String
+
+  // Detected provider info (from Shopify)
+  detectedProviderName  String?  // Raw provider name from Shopify
+  detectedServiceLevel  String?  // Raw service level from Shopify
+  matchedProviderId     String?  // Matched to our ShippingProvider
+
+  // Cost data
+  shippingCost          Float    // Actual cost from Shopify shipping_lines
+  shippingCurrency      String   @default("USD")
+
+  // Parsed from Shopify shipping_lines
+  carrierCode           String?  // shipping_lines[0].code
+  carrierTitle          String?  // shipping_lines[0].title
+
+  // Calculated metrics
+  costPerKg             Float?
+  costPerKm             Float?
+  carbonPerDollar       Float?   // kg CO2e per $ spent
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  order                 Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  merchant              Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  matchedProvider       ShippingProvider? @relation(fields: [matchedProviderId], references: [id])
+  comparisons           ShippingComparison[]
+
+  @@index([merchantId])
+  @@index([matchedProviderId])
+  @@index([createdAt])
+}
+
+model ShippingComparison {
+  id                      String    @id @default(cuid())
+  merchantId              String
+
+  // Can be order-level or aggregated comparison
+  orderShippingRecordId   String?   // If order-level comparison
+  periodStart             DateTime? // If aggregated comparison
+  periodEnd               DateTime? // If aggregated comparison
+
+  // Current shipping stats
+  currentCost             Float
+  currentCO2e             Float
+
+  // Alternative provider
+  alternativeProviderId   String
+  estimatedCost           Float
+  estimatedCO2e           Float
+
+  // Savings
+  costSavings             Float     // Positive = saves money
+  co2Savings              Float     // Positive = saves CO2
+  costSavingsPercent      Float
+  co2SavingsPercent       Float
+
+  // Recommendation score (weighted combination)
+  recommendationScore     Float     // 0-100
+
+  createdAt               DateTime  @default(now())
+
+  merchant                Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  orderShippingRecord     OrderShippingRecord? @relation(fields: [orderShippingRecordId], references: [id])
+  alternativeProvider     ShippingProvider @relation(fields: [alternativeProviderId], references: [id])
+
+  @@index([merchantId])
+  @@index([orderShippingRecordId])
+  @@index([createdAt])
+}
+
+model ShippingOptimizationSettings {
+  id                    String   @id @default(cuid())
+  merchantId            String   @unique
+
+  // Optimization preferences (0-100)
+  costWeight            Int      @default(50)  // How much to prioritize cost
+  carbonWeight          Int      @default(50)  // How much to prioritize carbon
+
+  // Preferred providers (stored as JSON array of provider IDs)
+  preferredProviderIds  String[] // Array of provider IDs
+  excludedProviderIds   String[] // Providers to exclude
+
+  // Constraints
+  maxDeliveryDays       Int?     // Maximum acceptable delivery time
+  requireCarbonOffset   Boolean  @default(false)
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  merchant              Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 }

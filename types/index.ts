@@ -290,12 +290,16 @@ declare module 'next-auth' {
     user: User & {
       id: string;
       subscriptionTier: SubscriptionTier;
+      isAdmin: boolean;
+      shopifyShop?: string | null;
     };
   }
 
   interface User {
     id: string;
     subscriptionTier: SubscriptionTier;
+    isAdmin: boolean;
+    shopifyShop?: string | null;
   }
 }
 
@@ -303,5 +307,208 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
     subscriptionTier: SubscriptionTier;
+    isAdmin: boolean;
+    shopifyShop?: string | null;
   }
+}
+
+// Shipping Optimization Types
+
+export interface ShippingProvider {
+  id: string;
+  name: string;
+  displayName: string;
+  type: string;
+  standardEmissionFactor: number;
+  expressEmissionFactor: number;
+  overnightEmissionFactor: number;
+  basePricePerKg?: number;
+  basePricePerKm?: number;
+  minimumCharge?: number;
+  avgDeliveryDays?: number;
+  carbonOffsetAvailable: boolean;
+  sustainabilityRating?: number;
+  active: boolean;
+  serviceLevels?: ShippingServiceLevel[];
+}
+
+export interface ShippingServiceLevel {
+  id: string;
+  providerId: string;
+  name: string;
+  code: string;
+  emissionFactor: number;
+  shippingMode: ShippingMode;
+  priceMultiplier: number;
+  minDeliveryDays?: number;
+  maxDeliveryDays?: number;
+  active: boolean;
+}
+
+export interface OrderShippingRecord {
+  id: string;
+  orderId: string;
+  merchantId: string;
+  detectedProviderName?: string;
+  detectedServiceLevel?: string;
+  matchedProviderId?: string;
+  shippingCost: number;
+  shippingCurrency: string;
+  carrierCode?: string;
+  carrierTitle?: string;
+  costPerKg?: number;
+  costPerKm?: number;
+  carbonPerDollar?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ShippingComparison {
+  id: string;
+  merchantId: string;
+  orderShippingRecordId?: string;
+  periodStart?: Date;
+  periodEnd?: Date;
+  currentCost: number;
+  currentCO2e: number;
+  alternativeProviderId: string;
+  estimatedCost: number;
+  estimatedCO2e: number;
+  costSavings: number;
+  co2Savings: number;
+  costSavingsPercent: number;
+  co2SavingsPercent: number;
+  recommendationScore: number;
+  createdAt: Date;
+}
+
+export interface ShippingOptimizationSettings {
+  id: string;
+  merchantId: string;
+  costWeight: number;
+  carbonWeight: number;
+  preferredProviderIds: string[];
+  excludedProviderIds: string[];
+  maxDeliveryDays?: number | null;
+  requireCarbonOffset: boolean;
+}
+
+export interface ShippingCostsSummary {
+  totalCost: number;
+  totalOrders: number;
+  avgCostPerOrder: number;
+  avgCostPerKg: number;
+  totalCO2e: number;
+  avgCO2ePerOrder: number;
+  carbonPerDollar: number;
+}
+
+export interface ProviderBreakdown {
+  providerName: string;
+  providerId?: string;
+  orderCount: number;
+  totalCost: number;
+  totalCO2e: number;
+  avgCostPerOrder: number;
+  percentOfOrders: number;
+}
+
+export interface ShippingCostsResponse {
+  summary: ShippingCostsSummary;
+  byProvider: ProviderBreakdown[];
+  byServiceLevel: {
+    serviceLevel: string;
+    orderCount: number;
+    totalCost: number;
+    totalCO2e: number;
+  }[];
+  trend: {
+    date: string;
+    cost: number;
+    orders: number;
+    co2e: number;
+  }[];
+}
+
+export interface DetectedProvider {
+  providerId: string | null;
+  providerName: string;
+  serviceLevel: string;
+  confidence: number;
+  emissionFactor: number;
+  shippingMode: ShippingMode;
+}
+
+export interface CompareRequest {
+  merchantId: string;
+  orderId?: string;
+  periodStart?: string;
+  periodEnd?: string;
+  weight?: number;
+  distance?: number;
+}
+
+export interface CompareAlternative {
+  providerId: string;
+  providerName: string;
+  serviceLevel: string;
+  estimatedCost: number;
+  estimatedCO2e: number;
+  deliveryDays: number;
+  costSavings: number;
+  costSavingsPercent: number;
+  co2Savings: number;
+  co2SavingsPercent: number;
+  recommendationScore: number;
+  sustainabilityRating?: number;
+  carbonOffsetAvailable: boolean;
+}
+
+export interface CompareResponse {
+  currentProvider: {
+    name: string;
+    cost: number;
+    co2e: number;
+    deliveryDays?: number;
+  };
+  alternatives: CompareAlternative[];
+  recommendation: {
+    bestForCost: string;
+    bestForCarbon: string;
+    bestOverall: string;
+  };
+}
+
+export interface ShippingRecommendation {
+  type: 'provider_switch' | 'service_downgrade' | 'consolidation' | 'offset';
+  title: string;
+  description: string;
+  estimatedCostSavings: number;
+  estimatedCO2Savings: number;
+  priority: 'high' | 'medium' | 'low';
+  affectedOrdersPercent?: number;
+}
+
+export interface ShippingRecommendationsResponse {
+  summary: {
+    potentialCostSavings: number;
+    potentialCO2Reduction: number;
+    potentialCostSavingsPercent: number;
+    potentialCO2ReductionPercent: number;
+  };
+  recommendations: ShippingRecommendation[];
+  topRecommendation?: {
+    fromProvider: string;
+    toProvider: string;
+    reason: string;
+    impact: string;
+  };
+}
+
+export interface ShippingOptimizationSummary {
+  enabled: boolean;
+  totalShippingCost: number;
+  potentialSavings: number;
+  potentialCO2Reduction: number;
+  topRecommendation?: string;
 }

@@ -42,17 +42,40 @@ export async function GET(request: NextRequest) {
     }
 
     // Store or update merchant in database
-    const merchant = await prisma.merchant.upsert({
+    // First, check if there's an existing merchant with this shop
+    let merchant = await prisma.merchant.findUnique({
       where: { shopifyShop: shop },
-      update: {
-        shopifyAccessToken: access_token,
-      },
-      create: {
-        email: `${shop}@shopify.merchant`,
-        shopifyShop: shop,
-        shopifyAccessToken: access_token,
-      },
     });
+
+    if (merchant) {
+      // Update existing merchant with access token
+      merchant = await prisma.merchant.update({
+        where: { id: merchant.id },
+        data: { shopifyAccessToken: access_token },
+      });
+    } else {
+      // Check if there's a merchant that was pre-configured with this shop but hasn't connected yet
+      // (This handles the case where an admin created a merchant record manually)
+      const existingByShop = await prisma.merchant.findFirst({
+        where: { shopifyShop: shop },
+      });
+
+      if (existingByShop) {
+        merchant = await prisma.merchant.update({
+          where: { id: existingByShop.id },
+          data: { shopifyAccessToken: access_token },
+        });
+      } else {
+        // Create new merchant if none exists
+        merchant = await prisma.merchant.create({
+          data: {
+            email: `${shop.replace('.myshopify.com', '')}@shopify.merchant`,
+            shopifyShop: shop,
+            shopifyAccessToken: access_token,
+          },
+        });
+      }
+    }
 
     // Log successful connection (consider using a proper logging service in production)
     if (process.env.NODE_ENV === 'development') {
