@@ -127,7 +127,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Redirect to dashboard with shop parameter
-    return NextResponse.redirect(new URL(`/dashboard?success=true&shop=${encodeURIComponent(shop)}`, request.url));
+    const baseUrl = process.env.SHOPIFY_HOST || process.env.NEXTAUTH_URL || request.url;
+    return NextResponse.redirect(new URL(`/dashboard?success=true&shop=${encodeURIComponent(shop)}`, baseUrl));
   } catch (error) {
     console.error('Error in Shopify callback:', error);
     return NextResponse.json(

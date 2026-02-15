@@ -25,18 +25,18 @@ export async function GET(request: NextRequest) {
 
     let merchant;
 
-    // If shop parameter provided (Shopify embedded app flow)
-    if (shop) {
-      merchant = await prisma.merchant.findUnique({
-        where: { shopifyShop: shop },
-        include: { settings: true },
-      });
-    }
-    // If authenticated via session
-    else if (session?.user) {
+    // If authenticated via session, always use the session user
+    if (session?.user) {
       const userId = (session.user as any).id;
       merchant = await prisma.merchant.findUnique({
         where: { id: userId },
+        include: { settings: true },
+      });
+    }
+    // If shop parameter provided (Shopify embedded app flow, not logged in)
+    else if (shop) {
+      merchant = await prisma.merchant.findUnique({
+        where: { shopifyShop: shop },
         include: { settings: true },
       });
     }
