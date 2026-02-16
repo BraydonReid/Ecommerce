@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 
 interface NavbarProps {
   merchantName?: string;
@@ -133,6 +134,13 @@ export default function Navbar({
               </Link>
             )}
 
+            <button
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="hidden sm:block px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              Sign Out
+            </button>
+
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -232,6 +240,13 @@ export default function Navbar({
                   </Link>
                 )}
               </div>
+
+              <button
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className="w-full mt-4 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+              >
+                Sign Out
+              </button>
             </nav>
           </div>
         )}
