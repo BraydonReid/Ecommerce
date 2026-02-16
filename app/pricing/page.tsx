@@ -119,7 +119,7 @@ export default function PricingPage() {
           {/* Premium Tier */}
           <div className="bg-white rounded-lg shadow-lg p-8">
             <h3 className="text-2xl font-bold mb-2">Premium</h3>
-            <p className="text-4xl font-bold text-green-primary mb-4">$99/mo</p>
+            <p className="text-4xl font-bold text-green-primary mb-4">$50/mo</p>
             <p className="text-gray-600 mb-6">For serious sustainability</p>
             <ul className="space-y-3 mb-8">
               <li className="flex items-start">
