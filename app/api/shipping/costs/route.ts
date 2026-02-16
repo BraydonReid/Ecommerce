@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { successResponse, errorResponse, handleApiError } from '@/lib/api-utils';
 import { aggregateShippingCosts, getProviderBreakdown } from '@/lib/shipping-provider';
@@ -11,17 +13,18 @@ import { ShippingCostsResponse } from '@/types';
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const shop = searchParams.get('shop');
-    const period = searchParams.get('period') || '30d';
-
-    if (!shop) {
-      return errorResponse('Shop parameter is required', 400);
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return errorResponse('Unauthorized', 401);
     }
+    const userId = (session.user as any).id;
+
+    const { searchParams } = new URL(request.url);
+    const period = searchParams.get('period') || '30d';
 
     // Get merchant
     const merchant = await prisma.merchant.findUnique({
-      where: { shopifyShop: shop },
+      where: { id: userId },
     });
 
     if (!merchant) {

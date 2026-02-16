@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
+import { checkRateLimit } from '@/lib/api-utils';
 import { generateAIInsights } from '@/lib/openai';
 
 export async function POST(request: NextRequest) {
   try {
-    const shop = request.nextUrl.searchParams.get('shop');
-    if (!shop) {
-      return NextResponse.json({ error: 'Missing shop parameter' }, { status: 400 });
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const userId = (session.user as any).id;
+
+    if (!checkRateLimit(`insights:${userId}`, 10, 3600000)) {
+      return NextResponse.json({ error: 'Rate limit exceeded. Try again later.' }, { status: 429 });
     }
 
-    const merchant = await prisma.merchant.findUnique({ where: { shopifyShop: shop } });
+    const merchant = await prisma.merchant.findUnique({ where: { id: userId } });
     if (!merchant) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
     }

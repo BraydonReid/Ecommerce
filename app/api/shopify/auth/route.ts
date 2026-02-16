@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import shopify from '@/lib/shopify';
 
 /**
@@ -19,8 +20,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid shop domain' }, { status: 400 });
     }
 
-    // Manually construct the OAuth URL
-    const state = Math.random().toString(36).substring(7);
+    // Generate cryptographically secure state parameter
+    const state = crypto.randomBytes(16).toString('hex');
     const redirectUri = `${process.env.SHOPIFY_HOST}/api/shopify/callback`;
     const scopes = process.env.SHOPIFY_SCOPES || 'read_orders,read_products,read_shipping';
 
@@ -30,7 +31,17 @@ export async function GET(request: NextRequest) {
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `state=${state}`;
 
-    return NextResponse.redirect(authUrl);
+    // Store state in HTTP-only cookie for validation in callback
+    const response = NextResponse.redirect(authUrl);
+    response.cookies.set('shopify_oauth_state', state, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 600, // 10 minutes
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Error starting Shopify OAuth:', error);
     return NextResponse.json({ error: 'Failed to start OAuth' }, { status: 500 });

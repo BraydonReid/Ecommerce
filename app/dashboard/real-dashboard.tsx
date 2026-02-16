@@ -38,11 +38,7 @@ export default function RealDashboard({ shop }: { shop?: string }) {
 
   async function fetchData() {
     try {
-      const url = shop
-        ? `/api/analytics/dashboard?shop=${encodeURIComponent(shop)}`
-        : '/api/analytics/dashboard';
-
-      const response = await fetch(url);
+      const response = await fetch('/api/analytics/dashboard');
 
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard data');
@@ -64,10 +60,7 @@ export default function RealDashboard({ shop }: { shop?: string }) {
     setSyncMessage('');
 
     try {
-      const response = await fetch(
-        `/api/shopify/sync?shop=${encodeURIComponent(data.merchant.shopifyShop)}`,
-        { method: 'POST' }
-      );
+      const response = await fetch('/api/shopify/sync', { method: 'POST' });
 
       const result = await response.json();
 

@@ -5,48 +5,26 @@ import { prisma } from '@/lib/prisma';
 
 /**
  * Get dashboard analytics for a merchant
- * GET /api/analytics/dashboard?shop=xxx
+ * GET /api/analytics/dashboard
  *
- * Authentication: Requires either a valid session or a valid shop parameter
- * (shop parameter is used for Shopify embedded app flow)
+ * Authentication: Requires a valid session
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const shop = request.nextUrl.searchParams.get('shop');
 
-    // Validate shop parameter format if provided
-    if (shop && !shop.endsWith('.myshopify.com')) {
+    if (!session?.user) {
       return NextResponse.json(
-        { error: 'Invalid shop parameter' },
-        { status: 400 }
-      );
-    }
-
-    let merchant;
-
-    // If authenticated via session, always use the session user
-    if (session?.user) {
-      const userId = (session.user as any).id;
-      merchant = await prisma.merchant.findUnique({
-        where: { id: userId },
-        include: { settings: true },
-      });
-    }
-    // If shop parameter provided (Shopify embedded app flow, not logged in)
-    else if (shop) {
-      merchant = await prisma.merchant.findUnique({
-        where: { shopifyShop: shop },
-        include: { settings: true },
-      });
-    }
-    // No authentication provided
-    else {
-      return NextResponse.json(
-        { error: 'Unauthorized. Please provide a valid shop parameter or sign in.' },
+        { error: 'Unauthorized. Please sign in.' },
         { status: 401 }
       );
     }
+
+    const userId = (session.user as any).id;
+    const merchant = await prisma.merchant.findUnique({
+      where: { id: userId },
+      include: { settings: true },
+    });
 
     if (!merchant) {
       return NextResponse.json(

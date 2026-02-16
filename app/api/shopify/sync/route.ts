@@ -1,30 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import axios from 'axios';
 import { calculateCarbonEmissions } from '@/lib/carbon';
 import { detectShippingProvider, matchProviderToDatabase } from '@/lib/shipping-provider';
+import { checkRateLimit, getClientIp } from '@/lib/api-utils';
 
 // Use environment variable for API version with fallback
 const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || '2024-01';
 
 /**
  * Sync orders and products from Shopify
- * POST /api/shopify/sync?shop=xxx
+ * POST /api/shopify/sync
+ * Requires authentication
  */
 export async function POST(request: NextRequest) {
   try {
-    const shop = request.nextUrl.searchParams.get('shop');
-
-    if (!shop) {
-      return NextResponse.json(
-        { error: 'Missing shop parameter' },
-        { status: 400 }
-      );
+    // Require authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Find merchant
+    // Rate limit: 5 requests per 5 minutes per user
+    const userId = (session.user as any).id;
+    if (!checkRateLimit(`sync:${userId}`, 5, 300000)) {
+      return NextResponse.json({ error: 'Too many sync requests. Please wait a few minutes.' }, { status: 429 });
+    }
+
+    // Find merchant by session
     const merchant = await prisma.merchant.findUnique({
-      where: { shopifyShop: shop },
+      where: { id: userId },
     });
 
     if (!merchant) {
@@ -49,7 +56,7 @@ export async function POST(request: NextRequest) {
     // Sync Products
     try {
       const productsResponse = await axios.get(
-        `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/products.json?limit=250`,
+        `https://${merchant.shopifyShop}/admin/api/${SHOPIFY_API_VERSION}/products.json?limit=250`,
         {
           headers: {
             'X-Shopify-Access-Token': accessToken,
@@ -91,7 +98,7 @@ export async function POST(request: NextRequest) {
     // Sync Orders
     try {
       const ordersResponse = await axios.get(
-        `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/orders.json?status=any&limit=250`,
+        `https://${merchant.shopifyShop}/admin/api/${SHOPIFY_API_VERSION}/orders.json?status=any&limit=250`,
         {
           headers: {
             'X-Shopify-Access-Token': accessToken,

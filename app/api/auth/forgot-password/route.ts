@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
+import { checkRateLimit, getClientIp } from '@/lib/api-utils';
 
 /**
  * POST /api/auth/forgot-password
  * Initiates password reset flow
- *
- * In production, this would:
- * 1. Generate a secure reset token
- * 2. Store it in the database with an expiration
- * 3. Send an email with the reset link
- *
- * For now, we log the token for development purposes
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 3 requests per 15 minutes per IP
+    const ip = getClientIp(request);
+    if (!checkRateLimit(`forgot-password:${ip}`, 3, 900000)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const { email } = await request.json();
 
     if (!email) {
@@ -47,27 +50,25 @@ export async function POST(request: NextRequest) {
     // Store the reset token expiration time (1 hour)
     const resetTokenExpiry = new Date(Date.now() + 3600000);
 
-    // Update the merchant with the reset token
-    // Note: In a complete implementation, you would have a separate PasswordResetToken model
-    // For now, we're storing it temporarily - implement email sending before going to production
-    await prisma.merchant.update({
-      where: { id: merchant.id },
+    // Store the reset token in the database
+    await prisma.passwordResetToken.create({
       data: {
-        // These fields would need to be added to the schema for full implementation:
-        // passwordResetToken: resetTokenHash,
-        // passwordResetExpiry: resetTokenExpiry,
-        updatedAt: new Date(), // Just update timestamp for now
+        token: resetTokenHash,
+        email: merchant.email,
+        expiresAt: resetTokenExpiry,
       },
     });
 
-    // TODO: Implement email sending service (SendGrid, Resend, AWS SES, etc.)
-    // const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${resetToken}`;
-    // await sendResetEmail(email, resetUrl);
-
-    // Log only in development mode, and never log the actual token
-    if (process.env.NODE_ENV === 'development') {
-      // In development, you would typically use a service like Mailhog or Ethereal
-      // to catch emails locally instead of logging tokens
+    // Send reset email if email service is configured
+    const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${resetToken}`;
+    try {
+      const { sendPasswordResetEmail } = await import('@/lib/email');
+      await sendPasswordResetEmail(email, resetUrl);
+    } catch {
+      // Email service not configured — log in development only
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Password reset URL:', resetUrl);
+      }
     }
 
     return NextResponse.json({

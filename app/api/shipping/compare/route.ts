@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { successResponse, errorResponse, handleApiError } from '@/lib/api-utils';
 import {
@@ -14,16 +16,18 @@ import { CompareResponse } from '@/types';
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { shop, orderId, periodStart, periodEnd, weight, distance } = body;
-
-    if (!shop) {
-      return errorResponse('Shop parameter is required', 400);
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return errorResponse('Unauthorized', 401);
     }
+    const userId = (session.user as any).id;
+
+    const body = await request.json();
+    const { orderId, periodStart, periodEnd, weight, distance } = body;
 
     // Get merchant
     const merchant = await prisma.merchant.findUnique({
-      where: { shopifyShop: shop },
+      where: { id: userId },
       include: {
         shippingOptimization: true,
       },

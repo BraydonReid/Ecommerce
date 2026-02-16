@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { getToken } from 'next-auth/jwt';
 import axios from 'axios';
@@ -15,12 +16,47 @@ export async function GET(request: NextRequest) {
     const code = request.nextUrl.searchParams.get('code');
     const shop = request.nextUrl.searchParams.get('shop');
     const hmac = request.nextUrl.searchParams.get('hmac');
+    const stateParam = request.nextUrl.searchParams.get('state');
 
     if (!code || !shop) {
       return NextResponse.json(
         { error: 'Missing required parameters' },
         { status: 400 }
       );
+    }
+
+    // Validate shop domain format
+    if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i.test(shop)) {
+      return NextResponse.json(
+        { error: 'Invalid shop domain' },
+        { status: 400 }
+      );
+    }
+
+    // Validate state parameter (CSRF protection)
+    const storedState = request.cookies.get('shopify_oauth_state')?.value;
+    if (!stateParam || stateParam !== storedState) {
+      return NextResponse.json(
+        { error: 'Invalid state parameter' },
+        { status: 403 }
+      );
+    }
+
+    // Validate HMAC signature
+    if (hmac) {
+      const params = Object.fromEntries(request.nextUrl.searchParams.entries());
+      const { hmac: _hmac, ...rest } = params;
+      const message = Object.keys(rest).sort().map(key => `${key}=${rest[key]}`).join('&');
+      const generatedHmac = crypto
+        .createHmac('sha256', process.env.SHOPIFY_API_SECRET!)
+        .update(message)
+        .digest('hex');
+      if (generatedHmac !== hmac) {
+        return NextResponse.json(
+          { error: 'Invalid HMAC signature' },
+          { status: 401 }
+        );
+      }
     }
 
     // Exchange code for access token
@@ -128,7 +164,10 @@ export async function GET(request: NextRequest) {
 
     // Redirect to dashboard with shop parameter
     const baseUrl = process.env.SHOPIFY_HOST || process.env.NEXTAUTH_URL || request.url;
-    return NextResponse.redirect(new URL(`/dashboard?success=true&shop=${encodeURIComponent(shop)}`, baseUrl));
+    const response = NextResponse.redirect(new URL(`/dashboard?success=true&shop=${encodeURIComponent(shop)}`, baseUrl));
+    // Clear the OAuth state cookie
+    response.cookies.delete('shopify_oauth_state');
+    return response;
   } catch (error) {
     console.error('Error in Shopify callback:', error);
     return NextResponse.json(
@@ -150,6 +189,22 @@ async function registerWebhooks(shop: string, accessToken: string) {
     {
       topic: 'orders/updated',
       address: `${process.env.SHOPIFY_HOST}/api/webhooks/shopify/orders-updated`,
+    },
+    {
+      topic: 'app/uninstalled',
+      address: `${process.env.SHOPIFY_HOST}/api/webhooks/shopify/app-uninstalled`,
+    },
+    {
+      topic: 'customers/data_request',
+      address: `${process.env.SHOPIFY_HOST}/api/webhooks/shopify/customers-data-request`,
+    },
+    {
+      topic: 'customers/redact',
+      address: `${process.env.SHOPIFY_HOST}/api/webhooks/shopify/customers-redact`,
+    },
+    {
+      topic: 'shop/redact',
+      address: `${process.env.SHOPIFY_HOST}/api/webhooks/shopify/shop-redact`,
     },
   ];
 

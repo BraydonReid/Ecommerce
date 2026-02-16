@@ -15,28 +15,20 @@ const settingsSchema = z.object({
 
 /**
  * GET /api/settings
- * Fetch merchant settings
+ * Fetch merchant settings (requires authentication)
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const shop = request.nextUrl.searchParams.get('shop');
 
-    let merchant;
-
-    if (shop) {
-      // Find by shop domain
-      merchant = await prisma.merchant.findUnique({
-        where: { shopifyShop: shop },
-        include: { settings: true },
-      });
-    } else if (session?.user) {
-      // Find by session user ID
-      merchant = await prisma.merchant.findUnique({
-        where: { id: (session.user as any).id },
-        include: { settings: true },
-      });
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const merchant = await prisma.merchant.findUnique({
+      where: { id: (session.user as any).id },
+      include: { settings: true },
+    });
 
     if (!merchant) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
@@ -80,24 +72,19 @@ export async function GET(request: NextRequest) {
 
 /**
  * PUT /api/settings
- * Update merchant settings
+ * Update merchant settings (requires authentication)
  */
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const shop = request.nextUrl.searchParams.get('shop');
 
-    let merchant;
-
-    if (shop) {
-      merchant = await prisma.merchant.findUnique({
-        where: { shopifyShop: shop },
-      });
-    } else if (session?.user) {
-      merchant = await prisma.merchant.findUnique({
-        where: { id: (session.user as any).id },
-      });
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const merchant = await prisma.merchant.findUnique({
+      where: { id: (session.user as any).id },
+    });
 
     if (!merchant) {
       return NextResponse.json({ error: 'Merchant not found' }, { status: 404 });
