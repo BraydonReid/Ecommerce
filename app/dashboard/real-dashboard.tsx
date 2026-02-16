@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { signOut } from 'next-auth/react';
 import EmissionsChart from '@/components/EmissionsChart';
 import MetricsCard from '@/components/MetricsCard';
 import { ShippingOptimization } from '@/components/shipping';
@@ -183,6 +184,12 @@ export default function RealDashboard({ shop }: { shop?: string }) {
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 {merchant.subscriptionTier.toUpperCase()}
               </span>
+              <button
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                Sign Out
+              </button>
             </div>
           </div>
           {syncMessage && (
