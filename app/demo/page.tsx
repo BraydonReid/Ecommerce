@@ -300,7 +300,7 @@ export default function DemoPage() {
                 href="/register"
                 className="block w-full bg-white text-green-600 py-2 px-4 rounded-lg font-semibold text-center hover:bg-green-50 transition"
               >
-                Start Free Trial
+                Get Started
               </Link>
             </div>
           </div>

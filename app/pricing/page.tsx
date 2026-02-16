@@ -51,34 +51,7 @@ export default function PricingPage() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Free Tier */}
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <h3 className="text-2xl font-bold mb-2">Free</h3>
-            <p className="text-4xl font-bold text-green-primary mb-4">$0</p>
-            <p className="text-gray-600 mb-6">Perfect for small stores</p>
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start">
-                <span className="text-green-primary mr-2">✓</span>
-                Up to 100 orders/month
-              </li>
-              <li className="flex items-start">
-                <span className="text-green-primary mr-2">✓</span>
-                Basic dashboard
-              </li>
-              <li className="flex items-start">
-                <span className="text-green-primary mr-2">✓</span>
-                Carbon tracking
-              </li>
-            </ul>
-            <button
-              onClick={() => router.push('/api/shopify/auth')}
-              className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300"
-            >
-              Get Started
-            </button>
-          </div>
-
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Basic Tier */}
           <div className="bg-green-primary text-white rounded-lg shadow-xl p-8 transform scale-105">
             <div className="text-sm bg-white text-green-primary px-3 py-1 rounded-full inline-block mb-2">
@@ -112,7 +85,7 @@ export default function PricingPage() {
               disabled={loading === 'basic'}
               className="w-full bg-white text-green-primary py-3 rounded-lg font-semibold hover:bg-green-50 disabled:opacity-50"
             >
-              {loading === 'basic' ? 'Loading...' : 'Start Free Trial'}
+              {loading === 'basic' ? 'Loading...' : 'Get Started'}
             </button>
           </div>
 
@@ -146,7 +119,7 @@ export default function PricingPage() {
               disabled={loading === 'premium'}
               className="w-full bg-green-primary text-white py-3 rounded-lg font-semibold hover:bg-green-secondary disabled:opacity-50"
             >
-              {loading === 'premium' ? 'Loading...' : 'Start Free Trial'}
+              {loading === 'premium' ? 'Loading...' : 'Get Started'}
             </button>
           </div>
         </div>
