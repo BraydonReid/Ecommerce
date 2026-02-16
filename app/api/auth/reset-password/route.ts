@@ -92,7 +92,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Password has been reset successfully. You can now sign in.',
+      email: merchant.email,
+      message: 'Password has been reset successfully.',
     });
   } catch (error) {
     console.error('Reset password error:', error);

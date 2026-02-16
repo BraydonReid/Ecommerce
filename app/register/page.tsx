@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 
 export default function RegisterPage() {
@@ -70,8 +71,18 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Registration failed');
       }
 
-      // Redirect to login with success message
-      router.push('/login?registered=true');
+      // Auto-sign in after successful registration
+      const signInResult = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      });
+
+      if (signInResult?.ok) {
+        router.push('/dashboard');
+      } else {
+        router.push('/login?registered=true');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
@@ -269,8 +280,8 @@ export default function RegisterPage() {
         {/* Benefits */}
         <div className="mt-8 grid grid-cols-3 gap-4 text-center">
           <div className="p-3">
-            <div className="text-2xl mb-1">Free</div>
-            <p className="text-xs text-gray-600">Start tracking for free</p>
+            <div className="text-2xl mb-1">Fast</div>
+            <p className="text-xs text-gray-600">Start tracking instantly</p>
           </div>
           <div className="p-3">
             <div className="text-2xl mb-1">Easy</div>
