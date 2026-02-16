@@ -121,9 +121,6 @@ export default function PrivacyPage() {
               <li><strong>Resend:</strong> Transactional emails (password resets only)</li>
             </ul>
             <p className="text-gray-600 mb-4">
-              We do <strong>not</strong> sell, rent, or trade your personal information to any third party.
-            </p>
-            <p className="text-gray-600 mb-4">
               We may disclose your information if required by law, court order, or governmental
               regulation, or to protect our rights, property, or the safety of our users.
             </p>
