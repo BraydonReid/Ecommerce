@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
         co2e: record.order.emissions[0]?.shippingCO2e || 0,
       };
 
-      avgWeight = record.order.totalWeight || 1;
-      avgDistance = record.order.shippingDistance || 500;
+      avgWeight = record.order.totalWeight || 0.5;
+      avgDistance = record.order.shippingDistance || 800;
     } else {
       // Aggregated comparison
       const startDate = periodStart ? new Date(periodStart) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -121,8 +121,8 @@ export async function POST(request: NextRequest) {
       const totalDistance = orders.reduce((sum, o) => sum + (o.shippingDistance || 0), 0);
       const orderCount = orders.length || 1;
 
-      avgWeight = weight || (totalWeight / orderCount) || 1;
-      avgDistance = distance || (totalDistance / orderCount) || 500;
+      avgWeight = weight || (totalWeight / orderCount) || 0.5;
+      avgDistance = distance || (totalDistance / orderCount) || 800;
     }
 
     // Generate alternatives

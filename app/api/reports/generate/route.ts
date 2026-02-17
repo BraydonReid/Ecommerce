@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
       <li>Your store processed ${orderCount} orders this period, generating ${totalCO2e.toFixed(2)} kg of CO₂ emissions.</li>
       <li>Shipping accounted for ${shippingPercent.toFixed(1)}% of total emissions.</li>
       <li>Average emissions per order: ${avgPerOrder.toFixed(2)} kg CO₂e.</li>
-      <li>Equivalent to driving a car approximately ${(totalCO2e * 4.6).toFixed(0)} km.</li>
+      <li>Equivalent to driving a car approximately ${(totalCO2e * 4.0).toFixed(0)} km (EPA).</li>
     </ul>
   </div>
 

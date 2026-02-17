@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import axios from 'axios';
-import { calculateCarbonEmissions } from '@/lib/carbon';
+import { calculateCarbonEmissions, estimateShippingDistance, determineShippingMethod } from '@/lib/carbon';
 import { detectShippingProvider, matchProviderToDatabase } from '@/lib/shipping-provider';
 import { checkRateLimit, getClientIp } from '@/lib/api-utils';
 
@@ -95,6 +95,13 @@ export async function POST(request: NextRequest) {
       console.error('Error syncing products:', error);
     }
 
+    // Get merchant settings for packaging defaults
+    const merchantSettings = await prisma.merchantSettings.findUnique({
+      where: { merchantId: merchant.id },
+    });
+    const defaultPackagingWeight = merchantSettings?.defaultPackagingWeight || 0.1;
+    const defaultPackagingType = merchantSettings?.defaultPackagingType || 'cardboard';
+
     // Sync Orders
     try {
       const ordersResponse = await axios.get(
@@ -152,25 +159,27 @@ export async function POST(request: NextRequest) {
         // Calculate total weight from line items
         let totalWeight = 0;
         for (const item of shopifyOrder.line_items || []) {
-          const weight = item.grams ? item.grams / 1000 : 0.5; // Default 0.5kg if no weight
+          // Use Shopify item weight if available; fallback to 0.5kg (avg small parcel)
+          const weight = item.grams ? item.grams / 1000 : 0.5;
           totalWeight += weight * item.quantity;
         }
 
         // Get shipping details
         const shippingAddress = shopifyOrder.shipping_address;
         const shippingLines = shopifyOrder.shipping_lines || [];
-        const shippingMethod = shippingLines[0]?.title?.toLowerCase() || 'standard';
+        const shippingMethodTitle = shippingLines[0]?.title || 'standard';
 
-        // Determine shipping method category
-        let shippingMethodCategory = 'road';
-        if (shippingMethod.includes('express') || shippingMethod.includes('overnight')) {
-          shippingMethodCategory = 'air';
-        } else if (shippingMethod.includes('standard') || shippingMethod.includes('ground')) {
-          shippingMethodCategory = 'road';
-        }
+        // Determine shipping method category from title
+        const shippingMethodCategory = determineShippingMethod(shippingMethodTitle);
 
-        // Estimate shipping distance (simplified - would need geocoding in production)
-        const shippingDistance = 500; // Default 500km, should be calculated based on addresses
+        // Calculate shipping distance from merchant location to destination
+        const destinationLocation = shippingAddress
+          ? `${shippingAddress.city || ''}, ${shippingAddress.country || ''}`.trim()
+          : 'Unknown';
+        const shippingDistance = estimateShippingDistance(
+          merchant.shopifyShop || 'US',
+          destinationLocation
+        );
 
         // Extract shipping cost and details
         const shippingLine = shippingLines[0];
@@ -188,12 +197,10 @@ export async function POST(request: NextRequest) {
             totalWeight: totalWeight || 1,
             shippingDistance: shippingDistance,
             shippingMethod: shippingMethodCategory,
-            originAddress: merchant.shopifyShop,
-            destinationAddress: shippingAddress
-              ? `${shippingAddress.city}, ${shippingAddress.country}`
-              : 'Unknown',
-            packagingWeight: 0.1, // Default 100g packaging
-            packagingType: 'cardboard',
+            originAddress: merchant.shopifyShop || 'Unknown',
+            destinationAddress: destinationLocation,
+            packagingWeight: defaultPackagingWeight,
+            packagingType: defaultPackagingType,
             createdAt: new Date(shopifyOrder.created_at),
           },
         });
@@ -246,8 +253,8 @@ export async function POST(request: NextRequest) {
           totalWeight: totalWeight || 1,
           shippingDistance: shippingDistance,
           shippingMethod: shippingMethodCategory as 'air' | 'sea' | 'road' | 'rail',
-          packagingType: 'cardboard',
-          packagingWeight: 0.1,
+          packagingType: defaultPackagingType as 'cardboard' | 'plastic' | 'paper' | 'biodegradable',
+          packagingWeight: defaultPackagingWeight,
         });
 
         // Store emission record

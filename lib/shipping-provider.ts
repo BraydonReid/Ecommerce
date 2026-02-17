@@ -17,10 +17,11 @@ const SERVICE_PATTERNS: Record<string, string[]> = {
 };
 
 // Default emission factors by service level (kg CO2e per ton-km)
+// Source: GLEC Framework v3.0 (Global Logistics Emissions Council)
 const DEFAULT_EMISSION_FACTORS = {
-  overnight: 1.13,  // Air shipping
-  express: 0.15,    // Express (mix of air and road)
-  ground: 0.096,    // Ground/road shipping
+  overnight: 1.13,  // Air freight (GLEC default, includes radiative forcing index)
+  express: 0.15,    // Express (GLEC weighted average of air + road)
+  ground: 0.096,    // Ground/road freight (GLEC average truck, mixed fleet)
 };
 
 /**
@@ -142,8 +143,9 @@ export function calculateProviderEmissions(
 }
 
 /**
- * Estimate shipping cost based on provider data
- * In production, this should integrate with actual carrier APIs
+ * Estimate shipping cost based on provider-specific base rates from the database.
+ * Uses weight + distance pricing model with service-level multipliers.
+ * Actual costs come from Shopify order data; this is used for comparison alternatives.
  */
 export function estimateShippingCost(
   weight: number,

@@ -239,18 +239,18 @@ export async function generatePDFReport(data: ReportData): Promise<Buffer> {
     <div class="equivalents">
       <div class="equivalent-card">
         <div class="equivalent-icon">🚗</div>
-        <div class="equivalent-value">${(summary.totalEmissions * 4.6).toFixed(0)} km</div>
-        <div class="equivalent-label">Driving distance</div>
+        <div class="equivalent-value">${(summary.totalEmissions * 4.0).toFixed(0)} km</div>
+        <div class="equivalent-label">Driving distance (EPA)</div>
       </div>
       <div class="equivalent-card">
         <div class="equivalent-icon">🌳</div>
-        <div class="equivalent-value">${(summary.totalEmissions / 21).toFixed(1)}</div>
-        <div class="equivalent-label">Trees needed (1 year)</div>
+        <div class="equivalent-value">${(summary.totalEmissions / 22).toFixed(1)}</div>
+        <div class="equivalent-label">Trees needed (1 year, USDA)</div>
       </div>
       <div class="equivalent-card">
         <div class="equivalent-icon">💡</div>
-        <div class="equivalent-value">${(summary.totalEmissions * 2.3).toFixed(0)} hrs</div>
-        <div class="equivalent-label">Light bulb hours</div>
+        <div class="equivalent-value">${(summary.totalEmissions * 40).toFixed(0)} hrs</div>
+        <div class="equivalent-label">60W bulb hours (EPA)</div>
       </div>
     </div>
   </div>

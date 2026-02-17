@@ -41,10 +41,13 @@ export async function POST(request: NextRequest) {
       ? determineShippingMethod(order.shipping_lines[0].title)
       : 'road';
 
-    // Estimate shipping distance (simplified - use actual geocoding in production)
+    // Estimate shipping distance using Haversine formula
+    const destinationAddress = order.shipping_address
+      ? `${order.shipping_address.city || ''}, ${order.shipping_address.country || ''}`.trim()
+      : 'Unknown';
     const shippingDistance = estimateShippingDistance(
-      'Warehouse', // In production, use actual origin
-      order.shipping_address?.country || 'Unknown'
+      shop || 'US',
+      destinationAddress
     );
 
     // Get merchant settings for packaging defaults
@@ -64,10 +67,8 @@ export async function POST(request: NextRequest) {
         totalPrice: parseFloat(order.total_price),
         shippingDistance,
         shippingMethod,
-        originAddress: 'Warehouse', // Update in production
-        destinationAddress: order.shipping_address
-          ? `${order.shipping_address.city}, ${order.shipping_address.country}`
-          : 'Unknown',
+        originAddress: shop || 'Unknown',
+        destinationAddress: destinationAddress,
         totalWeight,
         packagingWeight,
         packagingType,

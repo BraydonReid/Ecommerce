@@ -52,14 +52,14 @@ export async function POST(request: NextRequest) {
       ? determineShippingMethod(order.shipping_lines[0].title)
       : 'road';
 
-    const shippingDistance = estimateShippingDistance(
-      'Warehouse',
-      order.shipping_address?.country || 'Unknown'
-    );
-
     const destinationAddress = order.shipping_address
-      ? `${order.shipping_address.city}, ${order.shipping_address.country}`
+      ? `${order.shipping_address.city || ''}, ${order.shipping_address.country || ''}`.trim()
       : 'Unknown';
+
+    const shippingDistance = estimateShippingDistance(
+      shop || 'US',
+      destinationAddress
+    );
 
     const settings = await prisma.merchantSettings.findUnique({
       where: { merchantId: merchant.id },
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
           totalPrice: parseFloat(order.total_price),
           shippingDistance,
           shippingMethod,
-          originAddress: 'Warehouse',
+          originAddress: shop || 'Unknown',
           destinationAddress,
           totalWeight,
           packagingWeight,

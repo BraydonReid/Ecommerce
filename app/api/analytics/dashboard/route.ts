@@ -80,8 +80,9 @@ export async function GET(_request: NextRequest) {
       .map((product) => {
         const totalEmissions = product.orderItems.reduce((sum, item) => {
           const orderEmission = item.order.emissions[0]?.totalCO2e || 0;
-          const itemWeight = product.weight || 1;
-          const orderWeight = item.order.totalWeight || 1;
+          // Allocate order emissions proportionally by product weight
+          const itemWeight = product.weight || 0.5; // Fallback: avg small parcel weight
+          const orderWeight = item.order.totalWeight || 0.5;
           const itemEmission = (orderEmission * itemWeight) / orderWeight;
           return sum + itemEmission * item.quantity;
         }, 0);
