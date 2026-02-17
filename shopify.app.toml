@@ -1,0 +1,23 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "e09620e3af538f7ad648aff97bd650a7"
+name = "GreenCommerces"
+application_url = "https://www.greencommerces.com"
+embedded = false
+
+[webhooks]
+api_version = "2026-01"
+
+  [webhooks.privacy_compliance]
+  customer_data_request_url = "https://www.greencommerces.com/api/webhooks/shopify/customers-data-request"
+  customer_deletion_url = "https://www.greencommerces.com/api/webhooks/shopify/customers-redact"
+  shop_deletion_url = "https://www.greencommerces.com/api/webhooks/shopify/shop-redact"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_orders,read_products,read_shipping"
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [ "https://www.greencommerces.com/api/shopify/callback" ]
