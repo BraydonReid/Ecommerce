@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import shopify from '@/lib/shopify';
+import { verifyShopifyWebhookHmac } from '@/lib/shopify';
 
 /**
  * Handle Shopify customers/data_request webhook (GDPR mandatory)
@@ -8,20 +8,16 @@ import shopify from '@/lib/shopify';
  * We acknowledge the request and log the data we hold.
  */
 export async function POST(request: NextRequest) {
+  const rawBody = await request.text();
+  const hmac = request.headers.get('X-Shopify-Hmac-Sha256');
+
+  if (!verifyShopifyWebhookHmac(rawBody, hmac)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const topic = request.headers.get('X-Shopify-Topic');
     const shop = request.headers.get('X-Shopify-Shop-Domain');
-    const rawBody = await request.text();
-
-    // Verify HMAC
-    const isValid = await shopify.webhooks.validate({
-      rawBody,
-      rawRequest: request as any,
-    });
-
-    if (!isValid) {
-      return NextResponse.json({ error: 'Invalid webhook' }, { status: 401 });
-    }
 
     const payload = JSON.parse(rawBody);
     const customerEmail = payload.customer?.email;

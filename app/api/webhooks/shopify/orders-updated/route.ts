@@ -1,29 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateCarbonEmissions, determineShippingMethod, estimateShippingDistance } from '@/lib/carbon';
-import shopify from '@/lib/shopify';
+import { verifyShopifyWebhookHmac } from '@/lib/shopify';
 
 /**
  * Handle Shopify orders/updated webhook
  * Updates existing order data and recalculates emissions if needed.
  */
 export async function POST(request: NextRequest) {
+  const rawBody = await request.text();
+  const hmac = request.headers.get('X-Shopify-Hmac-Sha256');
+
+  if (!verifyShopifyWebhookHmac(rawBody, hmac)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    const hmac = request.headers.get('X-Shopify-Hmac-Sha256');
     const shop = request.headers.get('X-Shopify-Shop-Domain');
     const topic = request.headers.get('X-Shopify-Topic');
-
-    const rawBody = await request.text();
-
-    // Verify HMAC
-    const isValid = await shopify.webhooks.validate({
-      rawBody,
-      rawRequest: request as any,
-    });
-
-    if (!isValid) {
-      return NextResponse.json({ error: 'Invalid webhook' }, { status: 401 });
-    }
 
     const order = JSON.parse(rawBody);
 

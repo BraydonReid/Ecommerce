@@ -1,5 +1,6 @@
 import '@shopify/shopify-api/adapters/node';
 import { shopifyApi, LATEST_API_VERSION, DeliveryMethod } from '@shopify/shopify-api';
+import crypto from 'crypto';
 
 const shopify = shopifyApi({
   apiKey: process.env.SHOPIFY_API_KEY!,
@@ -11,6 +12,30 @@ const shopify = shopifyApi({
 });
 
 export default shopify;
+
+/**
+ * Verify Shopify webhook HMAC signature.
+ * Returns true if valid, false if invalid.
+ */
+export function verifyShopifyWebhookHmac(rawBody: string, hmacHeader: string | null): boolean {
+  if (!hmacHeader) return false;
+
+  const secret = process.env.SHOPIFY_API_SECRET;
+  if (!secret) {
+    console.error('SHOPIFY_API_SECRET is not configured');
+    return false;
+  }
+
+  const generatedHash = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody, 'utf8')
+    .digest('base64');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(generatedHash),
+    Buffer.from(hmacHeader)
+  );
+}
 
 export interface ShopifyOrder {
   id: number;
